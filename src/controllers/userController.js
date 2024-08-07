@@ -14,6 +14,11 @@ exports.userSignUp = async (req, res) => {
             return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: validation, result: {} })
         }
 
+        const valid_email = validationHelper.validEmail(req.body.email)
+        if (!valid_email) {
+            return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: 'Invalid email!', result: {} })
+        }
+
         const add_user = await userServices.userSignUp(req.body)
         return res.json(add_user)
     }
@@ -34,8 +39,29 @@ exports.userLogIn = async (req, res) => {
             return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: validation, result: {} })
         }
 
-        const add_user = await userServices.userLogIn(req.body)
-        return res.json(add_user)
+        const login_user = await userServices.userLogIn(req.body)
+        return res.json(login_user)
+    }
+    catch (ex) {
+        console.log(ex);
+    }
+}
+
+
+exports.userProfile = async (req, res) => {
+    try {
+        console.log(req.user);
+        
+        const required_fields = ['id']
+
+        const validation = validationHelper.validation(required_fields, req.params)
+
+        if (Object.keys(validation).length) {
+            return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: validation, result: {} })
+        }
+
+        const get_user = await userServices.userProfile(req.params)
+        return res.json(get_user)
     }
     catch (ex) {
         console.log(ex);

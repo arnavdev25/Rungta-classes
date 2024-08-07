@@ -9,6 +9,7 @@ app.use(express.json())
 app.use('/user', userRoute)
 
 
-app.listen(8080, () => {
-    console.log(`Running on server 8080`);
+const PORT = process.env.PORT
+app.listen(PORT, () => {
+    console.log(`Running on server ${PORT}`);
 })
