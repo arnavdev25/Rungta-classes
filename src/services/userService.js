@@ -99,3 +99,47 @@ exports.followUser = async (data, auth_user_data) => {
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
 }
+
+
+exports.getFollowersList = async (user_data, data) => {
+    const { _id } = user_data;
+    const limit = data.limit ? data.limit : 10000;
+    const offset = data.offset ? data.offset : 10000;
+
+    // console.log(_id);
+    const result = await User.aggregate([
+        { $match: { _id: _id } },
+        {
+            $lookup: {
+                from: 'users',
+                localField: "followers",
+                foreignField: "_id",
+                as: "followers_details"
+            }
+        },
+        { $unwind: "$followers_details" },
+        {
+            $limit: Number(limit)
+        },
+        {
+            $skip: +offset
+        }
+        {
+            $project: {
+                _id: 0,
+                // followers_details: 1
+                email: "$followers_details.email",
+                username: "$followers_details.username"
+
+            }
+        },
+
+    ])
+    console.log(result);
+
+    if (result) {
+        return { success: 1, status: app_constants.SUCCESS, message: 'Followers list fetched successfully!', result };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
