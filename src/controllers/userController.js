@@ -50,8 +50,6 @@ exports.userLogIn = async (req, res) => {
 
 exports.userProfile = async (req, res) => {
     try {
-        console.log(req.user);
-        
         const required_fields = ['id']
 
         const validation = validationHelper.validation(required_fields, req.params)
@@ -62,6 +60,25 @@ exports.userProfile = async (req, res) => {
 
         const get_user = await userServices.userProfile(req.params)
         return res.json(get_user)
+    }
+    catch (ex) {
+        console.log(ex);
+    }
+}
+
+
+exports.followUser = async (req, res) => {
+    try {
+        const required_fields = ['id']
+
+        const validation = validationHelper.validation(required_fields, req.body)
+
+        if (Object.keys(validation).length) {
+            return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: validation, result: {} })
+        }
+
+        const follow_user = await userServices.followUser(req.body, req.user)
+        return res.json(follow_user)
     }
     catch (ex) {
         console.log(ex);
