@@ -95,3 +95,14 @@ exports.getFollowersList = async (req, res) => {
         console.log(ex);
     }
 }
+
+
+exports.getFollowingsList = async (req, res) => {
+    try {
+        const get_users = await userServices.getFollowingsList(req.user, req.query)
+        return res.json(get_users)
+    }
+    catch (ex) {
+        console.log(ex);
+    }
+}

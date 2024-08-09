@@ -103,11 +103,13 @@ exports.followUser = async (data, auth_user_data) => {
 
 exports.getFollowersList = async (user_data, data) => {
     const { _id } = user_data;
-    const limit = data.limit ? data.limit : 10000;
-    const offset = data.offset ? data.offset : 10000;
 
-    // console.log(_id);
-    const result = await User.aggregate([
+    const limit = data.limit ? data.limit : 10000;
+    const offset = data.offset ? data.offset : 0;
+    const search = data.search ? data.search : ''
+    let search_query = {}
+
+    const pipeline = [
         { $match: { _id: _id } },
         {
             $lookup: {
@@ -118,27 +120,63 @@ exports.getFollowersList = async (user_data, data) => {
             }
         },
         { $unwind: "$followers_details" },
-        {
-            $limit: Number(limit)
-        },
-        {
-            $skip: +offset
-        }
-        {
-            $project: {
-                _id: 0,
-                // followers_details: 1
-                email: "$followers_details.email",
-                username: "$followers_details.username"
+        { $match: search_query }
+    ]
 
-            }
-        },
+    if (search) {
+        const regex = new RegExp(search, 'i')
 
+        search_query = { "followers_details.username": regex }
+    }
+
+    const [result, total_count] = await Promise.all([
+        User.aggregate([
+            ...pipeline,
+            {
+                $project: {
+                    _id: 0,
+                    email: "$followers_details.email",
+                    username: "$followers_details.username"
+                }
+            },
+            { $skip: +offset },
+            { $limit: Number(limit) },
+        ]),
+        User.aggregate([
+            ...pipeline,
+            { $count: "total_count" }
+        ])
     ])
-    console.log(result);
 
     if (result) {
-        return { success: 1, status: app_constants.SUCCESS, message: 'Followers list fetched successfully!', result };
+        return { success: 1, status: app_constants.SUCCESS, message: 'Followers list fetched successfully!', total_count: total_count.length ? total_count[0].total_count : 0, result };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
+
+
+exports.getFollowingsList = async (user_data, data) => {
+    const { followings } = user_data;
+
+    const limit = data.limit ? data.limit : 10000;
+    const offset = data.offset ? data.offset : 0;
+    const search = data.search ? data.search : ''
+    const query = { _id: { $in: followings } }
+
+    const total_count = user_data.followings.length
+
+    if (search) {
+        const regex = new RegExp(search, 'i')
+        query.username = regex
+    }
+
+    // const result = await User.findById(_id).select({ _id: 0, followings: 1 }).populate('followings')
+
+    const result = await User.find(query).select({ username: 1, email: 1, _id: 0 }).skip(offset).limit(limit)
+
+    if (result) {
+        return { success: 1, status: app_constants.SUCCESS, message: 'Following list fetched successfully!', total_count, result };
     }
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
