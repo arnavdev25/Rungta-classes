@@ -109,6 +109,16 @@ exports.getFollowersList = async (user_data, data) => {
     const search = data.search ? data.search : ''
     let search_query = {}
 
+    if (search) {
+        const regex = new RegExp(search, 'i')
+        search_query = {
+            $or: [
+                { "followers_details.username": regex },
+                { "followers_details.email": regex }
+            ]
+        }
+    }
+
     const pipeline = [
         { $match: { _id: _id } },
         {
@@ -122,12 +132,6 @@ exports.getFollowersList = async (user_data, data) => {
         { $unwind: "$followers_details" },
         { $match: search_query }
     ]
-
-    if (search) {
-        const regex = new RegExp(search, 'i')
-
-        search_query = { "followers_details.username": regex }
-    }
 
     const [result, total_count] = await Promise.all([
         User.aggregate([
@@ -147,6 +151,8 @@ exports.getFollowersList = async (user_data, data) => {
             { $count: "total_count" }
         ])
     ])
+    console.log(total_count);
+
 
     if (result) {
         return { success: 1, status: app_constants.SUCCESS, message: 'Followers list fetched successfully!', total_count: total_count.length ? total_count[0].total_count : 0, result };
@@ -164,19 +170,66 @@ exports.getFollowingsList = async (user_data, data) => {
     const search = data.search ? data.search : ''
     const query = { _id: { $in: followings } }
 
-    const total_count = user_data.followings.length
-
     if (search) {
         const regex = new RegExp(search, 'i')
-        query.username = regex
+        query['$or'] = [
+            { "username": regex },
+            { "email": regex }
+        ]
     }
 
-    // const result = await User.findById(_id).select({ _id: 0, followings: 1 }).populate('followings')
-
-    const result = await User.find(query).select({ username: 1, email: 1, _id: 0 }).skip(offset).limit(limit)
+    const [result, total_count] = await Promise.all([
+        User.find(query).select({ username: 1, email: 1, _id: 0 }).skip(offset).limit(limit),
+        User.countDocuments(query)
+    ])
 
     if (result) {
         return { success: 1, status: app_constants.SUCCESS, message: 'Following list fetched successfully!', total_count, result };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
+
+
+exports.unfollowUser = async (data, auth_user_data) => {
+    const auth_user_id = auth_user_data._id
+    const existing_followings = auth_user_data.followings
+    const unfollow_user_id = data.id;
+
+    if (auth_user_id == unfollow_user_id) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'Can not unfollow yourself!', result: {} }
+    }
+
+    const user_data = await User.findOne({ _id: unfollow_user_id })
+    if (!user_data) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'User does not exist!', result: {} }
+    }
+
+    const unfollow_check = existing_followings.includes(unfollow_user_id)
+    if (!unfollow_check) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'User is not followed!', result: {} }
+    }
+
+    // const filtered_existing_foolowings = existing_followings.filter((elem) => elem != unfollow_user_id)
+    const filtered_existing_foolowings = existing_followings.filter((e) => {
+        return e != unfollow_user_id
+    })
+    
+    const filtered_followers = user_data.followers.filter((elem) => elem != auth_user_id.toString())
+
+    const [update_unfollow_user, update_auth_user] = await Promise.all([
+        User.updateOne(
+            { _id: unfollow_user_id },
+            { $set: { followers: filtered_followers } }
+        ),
+        User.updateOne(
+            { _id: auth_user_id },
+            { $set: { followings: filtered_existing_foolowings } }
+        )
+    ])
+
+    if (update_unfollow_user && update_auth_user) {
+        return { success: 1, status: app_constants.SUCCESS, message: 'User unfollowed successfully!', result: {} };
     }
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
