@@ -1,6 +1,8 @@
 const cloudinary = require('../helpers/cloudinary');
 const Post = require('../models/postModel');
 const app_constants = require('../constants/app.json')
+const fs = require('fs');
+const { Types } = require('mongoose')
 
 
 exports.uploadPost = async (data, user_data) => {
@@ -9,14 +11,60 @@ exports.uploadPost = async (data, user_data) => {
     const caption = data.caption ? data.caption : ''
 
     const file_url = await cloudinary.uploader.upload(file.path)
-    console.log(file_url);
 
     const upload_post = await Post.create({
         file_url: file_url.url, caption, user_id: _id
     })
 
     if (upload_post) {
+        fs.unlink(file.path, (err) => {
+            if (err) console.log(err);
+        })
         return { success: 1, status: app_constants.SUCCESS, message: 'Post uploaded successfully!', result: upload_post };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
+
+
+exports.getPostList = async (data) => {
+    const { id } = data;
+    const limit = data.limit ? data.limit : 10000;
+    const offset = data.offset ? data.offset : 0;
+    const search = data.search ? data.search : ''
+    let search_query = {};
+    const mongo_id = new Types.ObjectId(id)
+
+    if (search) {
+        const regex = new RegExp(search, 'i')
+        search_query['$or'] = [
+            { "caption": regex }
+        ]
+    }
+
+    const pipeline = [
+        { $match: { user_id: mongo_id } },
+        { $match: search_query }
+    ]
+
+    const [result, total_count] = await Promise.all([
+        Post.aggregate([
+            ...pipeline,
+            { $sort: { createdAt: -1 } },
+            {
+                $project: { __v: 0, user_id: 0 }
+            },
+            { $skip: +offset },
+            { $limit: Number(limit) },
+        ]),
+        Post.aggregate([
+            ...pipeline,
+            { $count: "total_count" }
+        ])
+    ])
+
+    if (result) {
+        return { success: 1, status: app_constants.SUCCESS, message: 'Post list fetched successfully!', total_count: total_count.length ? total_count[0].total_count : 0, result };
     }
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }

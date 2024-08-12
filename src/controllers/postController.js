@@ -17,3 +17,21 @@ exports.uploadPost = async (req, res) => {
         console.log(ex);
     }
 }
+
+exports.getPostList = async (req, res) => {
+    try {
+        const required_fields = ['id']
+
+        const validation = validationHelper.validation(required_fields, req.query)
+
+        if (Object.keys(validation).length) {
+            return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: validation, result: {} })
+        }
+
+        const get_posts = await postService.getPostList(req.query)
+        return res.json(get_posts)
+    }
+    catch (ex) {
+        console.log(ex);
+    }
+}

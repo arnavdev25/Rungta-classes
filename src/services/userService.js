@@ -2,6 +2,7 @@ const User = require("../models/userModel")
 const bcrypt = require('bcrypt');
 const app_constants = require('../constants/app.json')
 const jwt = require('jsonwebtoken');
+const Post = require('../models/postModel');
 require('dotenv').config()
 
 
@@ -42,15 +43,22 @@ exports.userLogIn = async (data) => {
 
 exports.userProfile = async (data) => {
     const { id } = data
-    const user_data = await User.findOne({ _id: id }, { _id: 0, __v: 0, password: 0 })
+    const [user_data, post_count] = await Promise.all([
+        User.findOne({ _id: id }, { _id: 0, __v: 0, password: 0 }),
+        Post.countDocuments({ user_id: id })
+    ])
 
-    const result = {}
+    let result = {}
     const followers_count = user_data.followers.length
     const following_count = user_data.followings.length
-    result.user_data = user_data;
+    result = JSON.parse(JSON.stringify(user_data));   // for making deep copy
 
     result.followers_count = followers_count
     result.following_count = following_count
+    result.post_count = post_count
+
+    delete result.followers;
+    delete result.followings;
 
     if (!user_data) {
         return { success: 0, status: app_constants.BAD_REQUEST, message: 'User does not exist!', result: {} }
@@ -214,7 +222,7 @@ exports.unfollowUser = async (data, auth_user_data) => {
     const filtered_existing_foolowings = existing_followings.filter((e) => {
         return e != unfollow_user_id
     })
-    
+
     const filtered_followers = user_data.followers.filter((elem) => elem != auth_user_id.toString())
 
     const [update_unfollow_user, update_auth_user] = await Promise.all([
