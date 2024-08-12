@@ -1,0 +1,5 @@
+mkdir social-app  
+cd social-app
+npm init -y
+npm i express mongoose dotenv bcrypt jsonwebtoken
+nodemon start src/server.js

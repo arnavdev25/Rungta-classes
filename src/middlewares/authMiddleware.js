@@ -29,7 +29,3 @@ exports.verifyToken = async (req, res, next) => {
 
     next()
 }
-
-
-// Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2YjJmZmY3Nzc2ODUyNjRjOWUwNzIyMyIsImlhdCI6MTcyMzAwOTI1Mn0.LbiD0o6Ms1-FAJnsJJTJCOyhKVZ1r8QmehubzZqoy4
-
