@@ -69,3 +69,63 @@ exports.getPostList = async (data) => {
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
 }
+
+
+exports.updatePost = async (data, user_data) => {
+    const { file, post_id } = data
+    const caption = data.caption ? data.caption : ''
+
+    const post_data = await Post.findOne({ _id: post_id })
+    if (!post_data) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'Post does not exists!', result: {} };
+    }
+
+    if (post_data.user_id.toString() != user_data._id.toString()) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'You can only update your post!', result: {} };
+    }
+
+    const file_url = await cloudinary.uploader.upload(file.path)
+
+    const update_post = await Post.updateOne(
+        { _id: post_id },
+        { $set: { file_url: file_url.url, caption } }
+    )
+
+    if (update_post) {
+        // fs.unlink(file.path, (err) => {
+        //     if (err) console.log(err);
+        // })
+        return { success: 1, status: app_constants.SUCCESS, message: 'Post updated successfully!', result: update_post };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
+
+
+exports.likePost = async (data, user_data) => {
+    const { post_id } = data
+    const { _id } = user_data;
+
+    const post_data = await Post.findOne({ _id: post_id })
+    if (!post_data) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'Post does not exists!', result: {} };
+    }
+
+    const like_check = post_data.likes.includes(_id)
+    if (like_check) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'Post is already liked!', result: {} }
+    }
+
+    post_data.likes.push(_id)
+
+    const update_post = await Post.updateOne(
+        { _id: post_id },
+        { $set: { likes: post_data.likes } }
+    )
+
+    if (update_post) {
+        return { success: 1, status: app_constants.SUCCESS, message: 'Post liked successfully!', result: update_post };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
