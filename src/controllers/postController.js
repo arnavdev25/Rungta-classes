@@ -81,3 +81,22 @@ exports.likePost = async (req, res) => {
         console.log(ex);
     }
 }
+
+
+exports.getPostLikeList = async (req, res) => {
+    try {
+        const required_fields = ['post_id']
+
+        const validation = validationHelper.validation(required_fields, req.query)
+
+        if (Object.keys(validation).length) {
+            return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: validation, result: {} })
+        }
+
+        const get_post_likes = await postService.getPostLikeList(req.query)
+        return res.json(get_post_likes)
+    }
+    catch (ex) {
+        console.log(ex);
+    }
+}

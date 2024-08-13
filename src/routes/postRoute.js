@@ -10,6 +10,7 @@ postRoute.post('/upload', middleware.verifyToken, upload.single('file'), postCon
 postRoute.get('/list', middleware.verifyToken, postController.getPostList)
 postRoute.post('/update', middleware.verifyToken, upload.single('file'), postController.updatePost)
 postRoute.post('/like', middleware.verifyToken, postController.likePost)
+postRoute.get('/like/list', middleware.verifyToken, postController.getPostLikeList)
 
 
 module.exports = postRoute;

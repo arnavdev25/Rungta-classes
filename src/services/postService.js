@@ -129,3 +129,66 @@ exports.likePost = async (data, user_data) => {
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
 }
+
+
+exports.getPostLikeList = async (data) => {
+    const { post_id } = data;
+    const limit = data.limit ? data.limit : 10000;
+    const offset = data.offset ? data.offset : 0;
+    const search = data.search ? data.search : ''
+    let search_query = {};
+    const mongo_id = new Types.ObjectId(post_id)
+
+    const post_data = await Post.findOne({ _id: post_id })
+    if (!post_data) {
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'Post does not exists!', result: {} };
+    }
+
+    if (search) {
+        const regex = new RegExp(search, 'i')
+        search_query['$or'] = [
+            { "likes_details.username": regex },
+            { "likes_details.email": regex }
+        ]
+    }
+
+    const pipeline = [
+        { $match: { _id: mongo_id } },
+        {
+            $lookup: {
+                from: 'users',
+                localField: "likes",
+                foreignField: "_id",
+                as: "likes_details"
+            }
+        },
+        { $unwind: "$likes_details" },
+        { $match: search_query }
+    ]
+
+    const [result, total_count] = await Promise.all([
+        Post.aggregate([
+            ...pipeline,
+            {
+                $project: {
+                    _id: 0,
+                    username: "$likes_details.username",
+                    email: "$likes_details.email",
+                    user_id: "$likes_details._id"
+                }
+            },
+            { $skip: +offset },
+            { $limit: Number(limit) },
+        ]),
+        Post.aggregate([
+            ...pipeline,
+            { $count: "total_count" }
+        ])
+    ])
+
+    if (result) {
+        return { success: 1, status: app_constants.SUCCESS, message: 'Post like list fetched successfully!', total_count: total_count.length ? total_count[0].total_count : 0, result };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
