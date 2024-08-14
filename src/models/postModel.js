@@ -5,8 +5,7 @@ const postSchema = new Schema({
     file_url: { type: String, required: true },
     caption: { type: String, default: '' },
     user_id: { type: Schema.ObjectId, ref: "user", required: true },
-    likes: [{ type: Schema.ObjectId, ref: "user", default: [] }],
-    comments: [{ type: Schema.ObjectId, ref: "comment", default: [] }],
+    likes: [{ type: Schema.ObjectId, ref: "user", default: [] }]
 }, { timestamps: true })
 
 
