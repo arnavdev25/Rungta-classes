@@ -55,7 +55,38 @@ exports.commentList = async (data) => {
     // })
     // )
 
-    const all_comments = await Comment.find({ post_id })
+    // const all_comments = await Comment.find({ post_id }).populate('user_id', 'username email').sort({ updatedAt: -1 })
+    const all_comments = await Comment.aggregate([
+        { $match: { post_id: new Types.ObjectId(post_id) } },
+        {
+            $lookup: {
+                from: "users",
+                localField: "user_id",
+                foreignField: "_id",
+                as: "user_details"
+            }
+        },
+        {
+            $unwind: "$user_details"
+        },
+        {
+            $sort: { updatedAt: -1 }
+        },
+        {
+            $project: {
+                text: 1,
+                likes: 1,
+                parent_id: 1,
+                updated_At: { $dateToString: { format: "%d-%m-%Y %H:%M:%S", date: "$updatedAt", timezone: "Asia/Kolkata" } },
+                user_details: {
+                    username: "$user_details.username",
+                    email: "$user_details.email",
+                    user_id: "$user_details._id"
+                }
+            }
+        }
+    ])
+
     result = nestedComments(all_comments, null)
 
     if (result) {
@@ -82,9 +113,26 @@ async function getReplies(parent) {
 
 
 function nestedComments(comments, parent_id) {
-    console.log(parent_id);
 
-    const top_level = comments.filter((e) => String(e.parent_id) == String(parent_id))
-    console.log(top_level);
+    // const top_level = comments.filter((e) => String(e.parent_id) == String(parent_id))
+    // //    console.log(top_level);
+
+    // const result = top_level.map(e => (
+    //     {
+    //         ...e['_doc'],
+    //         replies: nestedComments(comments, e._id)
+    //     }            "post_id": "66b9a8211b44cfb5a1cb29be",
+
+    // ))
+
+    // return result;
+
+    return comments.filter((e) => String(e.parent_id) == String(parent_id)).
+        map(e => {
+            return {
+                ...e,
+                replies: nestedComments(comments, e._id)
+            }
+        })
 
 }
