@@ -4,19 +4,20 @@ const app_constants = require('../constants/app.json')
 const jwt = require('jsonwebtoken');
 const Post = require('../models/postModel');
 require('dotenv').config()
+const sendEmail = require('../helpers/sendEmail')
 
 
 exports.userSignUp = async (data) => {
     // for unique email check
     const user_data = await User.findOne({ email: data.email })
     if (user_data) {
-        return { success: 0, status: app_constants.BAD_REQUEST, message: 'Email already exists!', result: {} };
+        // return { success: 0, status: app_constants.BAD_REQUEST, message: 'Email already exists!', result: {} };
     }
 
     const salt = await bcrypt.genSalt(10);
     const hash_password = await bcrypt.hash(data.password, salt)
-
     const add_user = await User.create({ ...data, password: hash_password })
+    await sendEmail(data.email, data.username)
     return { success: 1, status: app_constants.SUCCESS, message: 'User added successfully!', result: add_user };
 }
 
@@ -36,6 +37,10 @@ exports.userLogIn = async (data) => {
     }
 
     const token = await jwt.sign({ id: user_data._id }, process.env.JWT_SECRET_KEY)
+    await User.updateOne(
+        { _id: user_data._id },
+        { $set: { token } }
+    )
 
     return { success: 1, status: app_constants.SUCCESS, message: 'User logged in successfully!', result: { token } };
 }
@@ -238,6 +243,22 @@ exports.unfollowUser = async (data, auth_user_data) => {
 
     if (update_unfollow_user && update_auth_user) {
         return { success: 1, status: app_constants.SUCCESS, message: 'User unfollowed successfully!', result: {} };
+    }
+
+    return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
+
+
+exports.userLogout = async (data) => {
+    const { _id } = data
+
+    const logout_user = await User.updateOne(
+        { _id },
+        { $set: { token: '' } }
+    )
+
+    if (logout_user) {
+        return { success: 1, status: app_constants.SUCCESS, message: 'User logged out successfully!', result: {} };
     }
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }

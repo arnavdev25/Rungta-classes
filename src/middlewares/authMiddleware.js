@@ -12,6 +12,9 @@ exports.verifyToken = async (req, res, next) => {
     }
 
     const token = authorization.replace("Bearer ", "")
+    if (!token) {
+        return res.json({ success: 0, status: app_constants.UNAUTHORIZED, message: 'Invalid token!', result: {} })
+    }
     const verify_token = await jwt.verify(token, process.env.JWT_SECRET_KEY)
 
     if (!verify_token) {
@@ -20,6 +23,9 @@ exports.verifyToken = async (req, res, next) => {
 
     const { id } = verify_token
     const user_data = await User.findById(id)
+    if (token != user_data.token) {
+        return res.json({ success: 0, status: app_constants.UNAUTHORIZED, message: 'Invalid token!', result: {} })
+    }
 
     if (!user_data) {
         return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: 'User does not exist!', result: {} })

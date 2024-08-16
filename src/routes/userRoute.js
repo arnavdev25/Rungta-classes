@@ -11,6 +11,7 @@ userRoute.post('/follow', middleware.verifyToken, userController.followUser)
 userRoute.get('/followers/list', middleware.verifyToken, userController.getFollowersList)
 userRoute.get('/followings/list', middleware.verifyToken, userController.getFollowingsList)
 userRoute.post('/unfollow', middleware.verifyToken, userController.unfollowUser)
+userRoute.post('/logout', middleware.verifyToken, userController.userLogout)
 
 
 module.exports = userRoute;

@@ -130,3 +130,14 @@ exports.unfollowUser = async (req, res) => {
         console.log(ex);
     }
 }
+
+
+exports.userLogout = async (req, res) => {
+    try {
+        const logout_user = await userServices.userLogout(req.user)
+        return res.json(logout_user)
+    }
+    catch (ex) {
+        console.log(ex);
+    }
+}
