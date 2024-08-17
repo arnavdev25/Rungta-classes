@@ -5,19 +5,30 @@ const jwt = require('jsonwebtoken');
 const Post = require('../models/postModel');
 require('dotenv').config()
 const sendEmail = require('../helpers/sendEmail')
+const fast2sms = require("fast-two-sms");
+const axios = require('axios')
+const accountSid = 'AC27d171ab7d6a9fd574afc31d8ef82f97';
+const authToken = 'aadd30b11d30cd6ec6b2ea7e093d1fb5';
+const client = require('twilio')(accountSid, authToken);
 
 
 exports.userSignUp = async (data) => {
     // for unique email check
     const user_data = await User.findOne({ email: data.email })
     if (user_data) {
-        // return { success: 0, status: app_constants.BAD_REQUEST, message: 'Email already exists!', result: {} };
+        return { success: 0, status: app_constants.BAD_REQUEST, message: 'Email already exists!', result: {} };
     }
 
     const salt = await bcrypt.genSalt(10);
     const hash_password = await bcrypt.hash(data.password, salt)
     const add_user = await User.create({ ...data, password: hash_password })
-    await sendEmail(data.email, data.username)
+
+    // to send mail
+    const subject = "Welcome to Our App!"
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Document</title></head><body><h3>Hi ${data.username},</h3><p>Welcome to our application.</p><p>Thanks for sign up with us.</p><br><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRj6nYxsIeKyxqvL5Tx99EIvJ4xiJ9fZQ5omFCfxoxPp1qx81XhUFNxHHzStg&s" alt><br><br><p>Best Regards,</p><p>Rungta Team,</p></body></html>`
+
+    await sendEmail(data.email, subject, html)
+
     return { success: 1, status: app_constants.SUCCESS, message: 'User added successfully!', result: add_user };
 }
 
@@ -262,4 +273,18 @@ exports.userLogout = async (data) => {
     }
 
     return { success: 0, status: app_constants.INTERNAL_SERVER_ERROR, message: 'Internal server error!', result: {} }
+}
+
+
+
+exports.userLogInOTP = async (data) => {
+    const { mobile_number } = data
+    // console.log(mobile_number);
+    client.verify.v2.services('VA2a0d92b0c46564ab79d9b13bd68a84f7')
+        .verifications
+        .create({ to: `+91${mobile_number}`, channel: 'sms' }) // channel can be 'sms', 'call', or 'email'
+        .then(verification => console.log(verification.status))
+        .catch(ex => console.log(ex));
+
+    return { success: 1, status: app_constants.SUCCESS, message: 'OTP sent successfully!', result: {} };
 }

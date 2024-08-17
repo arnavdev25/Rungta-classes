@@ -141,3 +141,23 @@ exports.userLogout = async (req, res) => {
         console.log(ex);
     }
 }
+
+
+exports.userLogInOTP = async (req, res) => {
+    // validation checks
+    try {
+        const required_fields = ['mobile_number']
+
+        const validation = validationHelper.validation(required_fields, req.body)
+
+        if (Object.keys(validation).length) {
+            return res.json({ success: 0, status: app_constants.BAD_REQUEST, message: validation, result: {} })
+        }
+        
+        const login_user = await userServices.userLogInOTP(req.body)
+        return res.json(login_user)
+    }
+    catch (ex) {
+        console.log(ex);
+    }
+}

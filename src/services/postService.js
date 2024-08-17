@@ -29,7 +29,7 @@ exports.uploadPost = async (data, user_data) => {
 
 exports.getPostList = async (data) => {
     const { id } = data;
-    const limit = data.limit ? data.limit : 10000;
+    const limit = d+ata.limit ? data.limit : 10000;
     const offset = data.offset ? data.offset : 0;
     const search = data.search ? data.search : ''
     let search_query = {};

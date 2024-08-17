@@ -5,12 +5,15 @@ const connection = require('./helpers/db')
 const userRoute = require('./routes/userRoute')
 const postRoute = require('./routes/postRoute')
 const commentRoute = require('./routes/commentRoute')
+const thirdPartyRoute = require('./routes/thirdPartyRoute')
 
 
 app.use(express.json())
 app.use('/user', userRoute)
 app.use('/posts', postRoute)
 app.use('/post/comments', commentRoute)
+app.use('/api', thirdPartyRoute)
+
 
 
 const PORT = process.env.PORT

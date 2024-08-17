@@ -6,6 +6,7 @@ const middleware = require('../middlewares/authMiddleware')
 
 userRoute.post('/signup', userController.userSignUp)
 userRoute.post('/login', userController.userLogIn)
+userRoute.post('/login/otp', userController.userLogInOTP)
 userRoute.get('/profile/:id', middleware.verifyToken, userController.userProfile)
 userRoute.post('/follow', middleware.verifyToken, userController.followUser)
 userRoute.get('/followers/list', middleware.verifyToken, userController.getFollowersList)
